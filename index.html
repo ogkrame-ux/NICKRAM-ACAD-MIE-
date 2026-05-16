@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Académie Pro</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+
+<header class="bg-white border-b p-4 sticky top-0">
+  <div class="max-w-6xl mx-auto flex justify-between items-center">
+    <h1 class="text-2xl font-bold cursor-pointer" onclick="showPage('home')">Académie Pro</h1>
+    <div id="userArea">
+      <button onclick="showPage('login')" class="bg-black text-white px-4 py-2 rounded-lg">Se connecter</button>
+    </div>
+  </div>
+</header>
+
+<main id="app" class="max-w-6xl mx-auto p-4"></main>
+
+<script>
+// === CONFIG ===
+const ADMIN_EMAIL = "ton-email@gmail.com"; // Mets ton email ici
+const ADMIN_NUMBER = "0700000"; // Mets ton numéro Mobile Money ici
+const PRICE = 1000; // Prix en FCFA
+const REFERRAL_USER = 100;
+const REFERRAL_ADMIN = 200;
+
+// === FAKE DB EN LOCALSTORAGE ===
+let users = JSON.parse(localStorage.getItem('users') || '[]');
+let currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+
+// === FORMATIONS ===
+const courses = [
+  {
+    id: 1,
+    title: "Créer un compte Telegram gratuitement",
+    description: "Tutoriel complet pour créer et sécuriser ton compte Telegram sans payer.",
+    video_url: "https://www.youtube.com/embed/5o8uCUBFzqg" // Remplace par ton lien YouTube
+  },
+  {
+    id: 2,
+    title: "Créer des chansons avec l'IA sur Suno",
+    description: "Génère des musiques complètes avec l'intelligence artificielle.",
+    video_url: "https://www.youtube.com/embed/yOUR_VIDEO_ID" // Remplace par ton lien YouTube
+  },
+  {
+    id: 3,
+    title: "Monétiser WhatsApp Status",
+    description: "Techniques pour gagner de l'argent avec tes statuts WhatsApp.",
+    video_url: "https://www.youtube.com/embed/yOUR_VIDEO_ID"
+  },
+  {
+    id: 4,
+    title: "Vendre sur Facebook Marketplace",
+    description: "Guide pour vendre tes produits rapidement.",
+    video_url: "https://www.youtube.com/embed/yOUR_VIDEO_ID"
+  },
+  {
+    id: 5,
+    title: "Créer un logo pro avec Canva",
+    description: "Design graphique facile même sans expérience.",
+    video_url: "https://www.youtube.com/embed/yOUR_VIDEO_ID"
+  }
+];
+
+// === ROUTER ===
+function showPage(page) {
+  if(page === 'home') homePage();
+  if(page === 'login') loginPage();
+  if(page === 'register') registerPage();
+  if(page === 'courses') coursesPage();
+  if(page === 'marketplace') marketplacePage();
+  if(page === 'referral') referralPage();
+  if(page === 'payment') paymentPage();
+}
+
+function updateUserArea() {
+  const area = document.getElementById('userArea');
+  if(currentUser && currentUser.paid) {
+    area.innerHTML = `
+      <span class="mr-4">Salut ${currentUser.email}</span>
+      <button onclick="logout()" class="text-red-600">Déconnexion</button>
+    `;
+  }
+}
+
+function homePage() {
+  app.innerHTML = `
+    <div class="text-center mt-16">
+      <h1 class="text-4xl font-bold mb-4">Formations qui rapportent</h1>
+      <p class="text-xl text-gray-600 mb-8">Accès à vie pour ${PRICE} FCFA seulement</p>
+      ${!currentUser?.paid ? `<button onclick="showPage('register')" class="bg-black text-white px-6 py-3 rounded-lg">Commencer maintenant</button>` : `<button onclick="showPage('courses')" class="bg-green-600 text-white px-6 py-3 rounded-lg">Accéder aux formations</button>`}
+      <div class="mt-12 flex gap-4 justify-center">
+        <button onclick="showPage('marketplace')" class="border px-4 py-2 rounded-lg">Marketplace</button>
+        <button onclick="showPage('referral')" class="border px-4 py-2 rounded-lg">Parrainage</button>
+      </div>
+    </div>
+  `;
+}
+
+function registerPage() {
+  app.innerHTML = `
+    <div class="max-w-md mx-auto bg-white p-6 rounded-xl shadow">
+      <h2 class="text-2xl font-bold mb-4">Créer un compte</h2>
+      <input id="email" type="email" placeholder="Email" class="w-full border p-3 rounded-lg mb-3">
+      <input id="password" type="password" placeholder="Mot de passe" class="w-full border p-3 rounded-lg mb-3">
+      <input id="ref" type="text" placeholder="Code parrainage optionnel" class="w-full border p-3 rounded-lg mb-3">
+      <button onclick="register()" class="w-full bg-black text-white p-3 rounded-lg">S'inscrire</button>
+      <p class="mt-4 text-center">Déjà un compte? <a href="#" onclick="showPage('login')" class="underline">Se connecter</a></p>
+    </div>
+  `;
+}
+
+function register() {
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
+  const ref = document.getElementById('ref').value;
+  
+  if(users.find(u => u.email === email)) {
+    alert('Email déjà utilisé');
+    return;
+  }
+  
+  const code = Math.floor(100000 + Math.random() * 900000);
+  const user = {email, password, code, paid: false, ref, balance: 0};
+  users.push(user);
+  localStorage.setItem('users', JSON.stringify(users));
+  
+  alert('Code de vérification: ' + code + ' \nVérifie ton email. Pour test, utilise ce code.');
+  currentUser = user;
+  localStorage.setItem('currentUser', JSON.stringify(user));
+  verifyPage();
+}
+
+function loginPage() {
+  app.innerHTML = `
+    <div class="max-w-md mx-auto bg-white p-6 rounded-xl shadow">
+      <h2 class="text-2xl font-bold mb-4">Connexion</h2>
+      <input id="email" type="email" placeholder="Email" class="w-full border p-3 rounded-lg mb-3">
+      <input id="password" type="password" placeholder="Mot de passe" class="w-full border p-3 rounded-lg mb-3">
+      <button onclick="login()" class="w-full bg-black text-white p-3 rounded-lg">Se connecter</button>
+    </div>
+  `;
+}
+
+function login() {
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
+  const user = users.find(u => u.email === email && u.password === password);
+  if(!user) return alert('Identifiants incorrects');
+  
+  currentUser = user;
+  localStorage.setItem('currentUser', JSON.stringify(user));
+  updateUserArea();
+  
+  if(!user.paid) {
+    verifyPage();
+  } else {
+    showPage('courses');
+  }
+}
+
+function verifyPage() {
+  app.innerHTML = `
+    <div class="max-w-md mx-auto bg-white p-6 rounded-xl shadow">
+      <h2 class="text-2xl font-bold mb-4">Vérification Email</h2>
+      <p>Entre le code envoyé à ${currentUser.email}</p>
+      <input id="code" type="text" placeholder="Code à 6 chiffres" class="w-full border p-3 rounded-lg my-3">
+      <button onclick="verifyCode()" class="w-full bg-black text-white p-3 rounded-lg">Vérifier</button>
+    </div>
+  `;
+}
+
+function verifyCode() {
+  const code = document.getElementById('code').value;
+  if(code == currentUser.code) {
+    showPage('payment');
+  } else {
+    alert('Code incorrect');
+  }
+}
+
+function paymentPage() {
+  app.innerHTML = `
+    <div class="max-w-md mx-auto bg-white p-6 rounded-xl shadow">
+      <h2 class="text-2xl font-bold mb-4">Débloquer l'accès</h2>
+      <p class="mb-4">Fais un dépôt de <b>${PRICE} FCFA</b> sur Mobile Money au numéro :</p>
+      <div class="bg-yellow-100 p-4 rounded-lg mb-4 text-center">
+        <p class="text-2xl font-bold">${ADMIN_NUMBER}</p>
+        <p>Orange/Moov/MTN Money</p>
+      </div>
+      <p class="text-sm text-gray-600 mb-4">Après paiement, envoie la capture à ${ADMIN_EMAIL} ou entre ton numéro de transaction ci-dessous. Je valide en 5 min.</p>
+      <input id="tx" type="text" placeholder="Numéro de transaction" class="w-full border p-3 rounded-lg mb-3">
+      <button onclick="submitPayment()" class="w-full bg-green-600 text-white p-3 rounded-lg">J'ai payé</button>
+      <p class="text-xs mt-4">Pour test: clique direct sur "Activer l'accès"</p>
+      <button onclick="activateAccess()" class="w-full border p-3 rounded-lg mt-2">Activer l'accès TEST</button>
+    </div>
+  `;
+}
+
+function activateAccess() {
+  currentUser.paid = true;
+  users = users.map(u => u.email === currentUser.email ? currentUser : u);
+  
+  // Gestion parrainage
+  if(currentUser.ref) {
+    const referrer = users.find(u => u.email === currentUser.ref);
+    if(referrer) {
+      referrer.balance += REFERRAL_USER;
+      users = users.map(u => u.email === referrer.email ? referrer : u);
+    }
+  }
+  
+  localStorage.setItem('users', JSON.stringify(users));
+  localStorage.setItem('currentUser', JSON.stringify(currentUser));
+  alert('Accès activé !');
+  showPage('courses');
+}
+
+function coursesPage() {
+  if(!currentUser?.paid) return showPage('payment');
+  
+  app.innerHTML = `
+    <h1 class="text-3xl font-bold mb-6">Mes Formations</h1>
+    <div class="grid md:grid-cols-2 gap-6">
+      ${courses.map(c => `
+        <div class="bg-white border rounded-xl p-4 shadow">
+          <h2 class="text-xl font-semibold mb-2">${c.title}</h2>
+          <p class="text-gray-600 mb-3">${c.description}</p>
+          <iframe src="${c.video_url}" class="w-full aspect-video rounded-lg"></iframe>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function marketplacePage() {
+  app.innerHTML = `
+    <h1 class="text-3xl font-bold mb-6">Marketplace</h1>
+    <p class="mb-4">Vends tes produits/services ici. Contacte ${ADMIN_EMAIL} pour ajouter une annonce.</p>
+    <div class="bg-white p-6 rounded-xl shadow text-center">
+      <p>Fonctionnalité bientôt disponible</p>
+    </div>
+  `;
+}
+
+function referralPage() {
+  if(!currentUser) return showPage('login');
+  const link = window.location.origin + window.location.pathname + '?ref=' + currentUser.email;
+  app.innerHTML = `
+    <div class="max-w-md mx-auto bg-white p-6 rounded-xl shadow">
+      <h2 class="text-2xl font-bold mb-4">Parrainage</h2>
+      <p>Ton solde: <b>${currentUser.balance} FCFA</b></p>
+      <p class="mt-4">Ton lien de parrainage:</p>
+      <input value="${link}" readonly class="w-full border p-2 rounded-lg my-2">
+      <button onclick="navigator.clipboard.writeText('${link}')" class="w-full bg-black text-white p-3 rounded-lg">Copier le lien</button>
+      <p class="text-sm mt-4">Tu gagnes ${REFERRAL_USER} FCFA par personne inscrite. Admin gagne ${REFERRAL_ADMIN} FCFA.</p>
+    </div>
+  `;
+}
+
+function logout() {
+  currentUser = null;
+  localStorage.removeItem('currentUser');
+  updateUserArea();
+  showPage('home');
+}
+
+function submitPayment() {
+  alert('Demande envoyée. Je vais vérifier et activer ton compte manuellement.');
+}
+
+// Vérifie si URL a ?ref=
+const urlParams = new URLSearchParams(window.location.search);
+const refParam = urlParams.get('ref');
+if(refParam) localStorage.setItem('pendingRef', refParam);
+
+// Init
+updateUserArea();
+homePage();
+</script>
+</body>
+</html>
